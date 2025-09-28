@@ -19,7 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-[#070210]" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden'}}>
         <WalletProvider>
-          {/*<PrismBackground />*/}
+          <PrismBackground />
           <Navbar />
           <main style={{ flex: 1, overflow: 'auto' }}>
             {children}
