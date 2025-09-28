@@ -23,7 +23,7 @@ export default function Portfolio() {
     // Mock portfolio data
     const portfolioValue = currency === 'ALGO' ? '1,250.50' : '2,847.32';
     const portfolioChange = '+12.5%';
-    const ownedMovies = moviesData.slice(0, 10) as Movie[];
+    const ownedMovies = moviesData.slice(25, 32) as Movie[];
     
     // Pie chart data for portfolio distribution
     const pieChartData = [
@@ -82,7 +82,6 @@ export default function Portfolio() {
                                 </button>
                             </div>
                         </div>
-                        
                         <div className={styles.valueSection}>
                             <h3 className={styles.sectionTitle}>Portfolio Value</h3>
                             <div className={styles.valueContainer}>
@@ -105,15 +104,6 @@ export default function Portfolio() {
                                         USDC
                                     </button>
                                 </div>
-                            </div>
-                            <div className={styles.disconnectSection}>
-                                <Button 
-                                    variant="buy"
-                                    onClick={handleDisconnect}
-                                    disabled={isDisconnecting}
-                                >
-                                    {isDisconnecting ? 'Disconnecting...' : 'Disconnect Wallet'}
-                                </Button>
                             </div>
                         </div>
                     </div>
@@ -178,6 +168,15 @@ export default function Portfolio() {
                             />
                         </div>
                     </Card>
+                    <div className={styles.disconnectSection}>
+                                <Button 
+                                    variant="buy"
+                                    onClick={handleDisconnect}
+                                    disabled={isDisconnecting}
+                                >
+                                    {isDisconnecting ? 'Disconnecting...' : 'Disconnect Wallet'}
+                                </Button>
+                            </div>
                 </div>
             </div>
         </div>

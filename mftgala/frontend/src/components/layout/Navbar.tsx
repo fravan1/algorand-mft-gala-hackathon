@@ -36,7 +36,7 @@ export default function Navbar() {
                 {activeAddress ? (
                     <Link href="/portfolio">
                             <div className="flex items-center gap-2">
-                                <span>Portfolio</span>
+                                <span className="text-lg font-bold">portfolio</span>
                             </div>
                     </Link>
                 ) : (

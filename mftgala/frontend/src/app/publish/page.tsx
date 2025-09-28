@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './Publish.module.css';
 import Button from '@/components/ui/Button';
 import { useWallet } from '@txnlab/use-wallet-react';
 import { insertAsset } from '@/utils/appCall';
+import { saveMovie, getMovies } from '@/storage/publishedMovies';
 
 interface PublishFormData {
   movieName: string;
@@ -19,8 +20,6 @@ interface PublishFormData {
   year: string;
   director: string;
 }
-
-let ASSET_ID = 0;
 
 export default function Publish() {
   const [formData, setFormData] = useState<PublishFormData>({
@@ -37,11 +36,22 @@ export default function Publish() {
     director: ''
   });
 
-  const { activeAddress, activeWallet } = useWallet();
-  
+  const { activeAddress } = useWallet();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { } = useWallet();
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+
+  // Auto-populate publisher address when wallet is connected
+  useEffect(() => {
+    if (activeAddress) {
+      setFormData(prev => ({
+        ...prev,
+        publisherAddress: activeAddress
+      }));
+    }
+  }, [activeAddress]);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -52,24 +62,54 @@ export default function Publish() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    try {
-      // Here you would integrate with your blockchain/backend logic
-      console.log('Publishing movie with data:', formData);
-      const asa_id = Math.floor(Math.random() * 1000000) + 100000;
-      // Calculate algoSeed in microALGO (multiply by 1,000,000 to convert ALGO to microALGO)
-      const algoSeedInAlgo = Number(formData.totalSupply) * 0.2;
-      const algoSeedInMicroAlgo = Math.floor(algoSeedInAlgo * 1000000);
-      const result = await insertAsset(ASSET_ID, asa_id, Number(formData.totalSupply), 1, formData.publisherAddress, algoSeedInMicroAlgo);
-      ASSET_ID++;
-      console.log(result);
 
-      if (result) {
-        alert('Movie published successfully!');
+    try {
+      console.log('Publishing movie with data:', formData);
+
+      // Generate a random price for the asset
+      const price = Math.floor(Math.random() * 1000000) + 100000;
+      // Calculate algoSeed in microALGO
+      const algoSeedInAlgo = Number(formData.totalSupply) * 0.2;
+      const algoSeedInMicroAlgo = Math.floor(algoSeedInAlgo * 1_000_000);
+
+      // Asset ID = length of published movies array
+      const assetId = getMovies().length;
+
+      const result = await insertAsset(
+        assetId,
+        Number(formData.totalSupply),
+        price,
+        formData.publisherAddress,
+        algoSeedInMicroAlgo,
+        formData.movieName,
+        formData.unitName || "MFT",
+      );
+
+      if (result.success) {
+        const saved = saveMovie({
+          id: assetId,
+          asaId: Number(result.createdAssetId),
+          movieName: formData.movieName,
+          studioName: formData.studioName,
+          imageUrl: formData.imageUrl,
+          trailerUrl: formData.trailerUrl,
+          totalSupply: Number(formData.totalSupply),
+          unitName: formData.unitName,
+          publisherAddress: formData.publisherAddress,
+          description: formData.description,
+          genre: formData.genre,
+          year: formData.year,
+          director: formData.director,
+          algoSeed: algoSeedInMicroAlgo,
+          price: price
+        });
+
+        console.log('Saved movie:', saved);
+        alert(`Movie published successfully! Asset ID: ${saved.id}`);
       } else {
-        alert('Movie published failed!');
+        alert('Movie publish failed!');
       }
-      
+
       // Reset form
       setFormData({
         movieName: '',
@@ -100,9 +140,9 @@ export default function Publish() {
           <div className={styles.previewSection}>
             <div className={styles.moviePreview}>
               {formData.imageUrl ? (
-                <img 
-                  src={formData.imageUrl} 
-                  alt="Movie poster" 
+                <img
+                  src={formData.imageUrl}
+                  alt="Movie poster"
                   className={styles.previewImage}
                   onError={(e) => {
                     e.currentTarget.src = '/placeholder-movie.jpg';
@@ -123,7 +163,6 @@ export default function Publish() {
 
           {/* Form Fields Section */}
           <div className={styles.formSection}>
-            
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label htmlFor="movieName">Movie Name *</label>
@@ -225,7 +264,7 @@ export default function Publish() {
                 />
               </div>
             </div>
-            
+
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label htmlFor="totalSupply">Total Supply *</label>
@@ -254,7 +293,6 @@ export default function Publish() {
                 />
               </div>
             </div>
-
           </div>
         </div>
 
@@ -264,15 +302,15 @@ export default function Publish() {
             <span className={styles.priceValue}>
               {(() => {
                 const totalSupply = parseFloat(formData.totalSupply) || 0;
-                const cost = totalSupply * 0.2; // 10% of total supply
+                const cost = totalSupply * 0.2;
                 return `${cost.toFixed(2)} ALGO`;
               })()}
             </span>
           </div>
-          <Button 
+          <Button
             variant="buy"
             className={styles.publishButton}
-            onClick={() => handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
+            type="submit"
           >
             {isSubmitting ? 'Publishing...' : 'Publish Movie MFT'}
           </Button>

@@ -3,10 +3,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import styles from './Marketplace.module.css';
 import Card from '@/components/ui/Card';
-import { Movie } from '@/types/movie';
-import moviesData from '@/data/movies.json';
 import Button from '@/components/ui/Button';
 import { getAssetInfo } from '@/utils/appCall';
+import { getMovies as getPublishedMovies } from '@/storage/publishedMovies'; // ✅ import storage
+import { PublishedMovie } from '@/storage/publishedMovies';
 
 interface AssetPriceInfo {
     price: bigint;
@@ -21,27 +21,35 @@ interface AssetPriceInfo {
 }
 
 export default function Marketplace() {
-    const movies: Movie[] = moviesData as Movie[];
+    const [movies, setMovies] = useState<PublishedMovie[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedGenre, setSelectedGenre] = useState('');
     const [priceRange, setPriceRange] = useState('');
     const [assetPrices, setAssetPrices] = useState<Record<number, AssetPriceInfo>>({});
-    const [loadingPrices, setLoadingPrices] = useState(false);
     const [priceError, setPriceError] = useState<string | null>(null);
 
-    // Fetch price info for all movies
-    /*useEffect(() => {
+    // Load published movies from storage
+    useEffect(() => {
+        const published = getPublishedMovies();
+        setMovies(published);
+    }, []);
+
+    // Fetch price info for all movies (from blockchain)
+    useEffect(() => {
         const fetchAllAssetPrices = async () => {
-            setLoadingPrices(true);
+            if (!movies.length) return;
+
             setPriceError(null);
             
             try {
                 const pricePromises = movies.map(async (movie) => {
                     try {
+                        console.log(`Fetching price for movie ${movie.id} (${movie.movieName})`);
                         const assetInfo = await getAssetInfo(movie.id);
+                        console.log(`Asset info for movie ${movie.id}:`, assetInfo);
                         return { id: movie.id, info: assetInfo };
                     } catch (error) {
-                        console.warn(`Failed to fetch price for movie ${movie.id}:`, error);
+                        console.warn(`Failed to fetch price for movie ${movie.id} (${movie.movieName}):`, error);
                         return { id: movie.id, info: null };
                     }
                 });
@@ -59,13 +67,12 @@ export default function Marketplace() {
             } catch (error) {
                 console.error('Error fetching asset prices:', error);
                 setPriceError('Failed to load price information');
-            } finally {
-                setLoadingPrices(false);
             }
         };
 
         fetchAllAssetPrices();
-    }, [movies]);*/
+    }, [movies]);
+
     // Get unique genres for filter
     const genres = useMemo(() => {
         const uniqueGenres = [...new Set(movies.map(movie => movie.genre))];
@@ -75,13 +82,13 @@ export default function Marketplace() {
     // Filter movies based on search and filters
     const filteredMovies = useMemo(() => {
         return movies.filter(movie => {
-            const matchesSearch = movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                movie.desc.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = movie.movieName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                movie.description.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesGenre = !selectedGenre || movie.genre === selectedGenre;
             const matchesPrice = !priceRange || (
-                priceRange === 'low' && parseFloat(movie.price) <= 0.6 ||
-                priceRange === 'medium' && parseFloat(movie.price) > 0.6 && parseFloat(movie.price) <= 0.9 ||
-                priceRange === 'high' && parseFloat(movie.price) > 0.9
+                priceRange === 'low' && Number(movie.totalSupply) <= 600_000 ||
+                priceRange === 'medium' && Number(movie.totalSupply) > 600_000 && Number(movie.totalSupply) <= 900_000 ||
+                priceRange === 'high' && Number(movie.totalSupply) > 900_000
             );
             
             return matchesSearch && matchesGenre && matchesPrice;
@@ -140,12 +147,6 @@ export default function Marketplace() {
             </div>
             
             <div className={styles.marketPlaceMainContent}>
-                {loadingPrices && (
-                    <div className={styles.loadingIndicator}>
-                        <p>Loading price information...</p>
-                    </div>
-                )}
-                
                 {priceError && (
                     <div className={styles.errorMessage}>
                         <p>⚠️ {priceError}</p>
@@ -154,8 +155,9 @@ export default function Marketplace() {
 
                 {filteredMovies.map((movie) => {
                     const assetInfo = assetPrices[movie.id];
-                    const currentPrice = assetInfo ? Number(assetInfo.price) / 1000000 : parseFloat(movie.price);
-                    const liquidity = assetInfo ? Number(assetInfo.algoLiquidity) / 1000000 : 0;
+                    // Calculate actual price: price from blockchain / 1,000,000 to convert microALGO to ALGO
+                    const currentPrice = assetInfo ? Number(assetInfo.price) / 1_000_000 : 0.001;
+                    const liquidity = assetInfo ? Number(assetInfo.algoLiquidity) / 1_000_000 : 0;
                     const hypeFactor = assetInfo ? Number(assetInfo.hypeFactor) : 1;
                     
                     return (
@@ -166,42 +168,17 @@ export default function Marketplace() {
                             onClick={() => handleMovieClick(movie.id)}
                         >
                             <div className={styles.movieImage}>
-                                <img src={movie.image} alt={movie.title} />
+                                <img src={movie.imageUrl} alt={movie.movieName} />
                             </div>
                             <div className={styles.movieInfo}>
-                                <h3 className={styles.movieTitle}>{movie.title}</h3>
-                                <p className={styles.movieDescription}>{movie.desc}</p>
+                                <h3 className={styles.movieTitle}>{movie.movieName}</h3>
+                                <p className={styles.movieDescription}>{movie.description}</p>
                                 
                                 {/* Price Information */}
                                 <div className={styles.priceInfo}>
                                     <div className={styles.moviePrice}>
-                                        {assetInfo ? (
-                                            <>
-                                                <span className={styles.currentPrice}>
-                                                    {currentPrice.toFixed(6)} ALGO
-                                                </span>
-                                                <span className={styles.originalPrice}>
-                                                    (Original: {movie.price} {movie.unit_name})
-                                                </span>
-                                            </>
-                                        ) : (
-                                            <span>{movie.price} {movie.unit_name}</span>
-                                        )}
+                                        {assetInfo ? `${currentPrice.toFixed(4)} ALGO per unit` : 'Loading...'}
                                     </div>
-                                    
-                                    {assetInfo && (
-                                        <div className={styles.assetDetails}>
-                                            <div className={styles.liquidity}>
-                                                💧 Liquidity: {liquidity.toFixed(2)} ALGO
-                                            </div>
-                                            <div className={styles.hypeFactor}>
-                                                🔥 Hype: {hypeFactor}x
-                                            </div>
-                                            <div className={styles.supply}>
-                                                📊 Supply: {Number(assetInfo.totalSupply).toLocaleString()}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                             <div className="flex flex-row gap-1 justify-center items-center">
@@ -214,4 +191,4 @@ export default function Marketplace() {
             </div>
         </div>
     )
-} 
+}

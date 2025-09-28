@@ -2,12 +2,12 @@
 
 import styles from './Movie.module.css';
 import Image from 'next/image';
-import moviesData from '../../../data/movies.json';
-import { Movie as MovieType } from '../../../types/movie';
-import { useState, use, act } from 'react';
+import { getMovies as getPublishedMovies } from '@/storage/publishedMovies';
+import { PublishedMovie } from '@/storage/publishedMovies';
+import { useState, use, useEffect } from 'react';
 import Button from '../../../components/ui/Button';
 import PriceChart from '../../../components/ui/PriceChart';
-import { buyAsset, sellAsset, checkAssetExists } from '@/utils/appCall';
+import { buyAsset, sellAsset, checkAssetExists, getAssetInfo } from '@/utils/appCall';
 import { useWallet } from '@txnlab/use-wallet-react';
 
 interface MoviePageProps {
@@ -21,8 +21,43 @@ export default function Movie({ params }: MoviePageProps) {
     const [isTrailerOpen, setIsTrailerOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
     const [amount, setAmount] = useState('');
+    const [movie, setMovie] = useState<PublishedMovie | undefined>();
+    const [currentPrice, setCurrentPrice] = useState<number>(0);
+    const [priceError, setPriceError] = useState<string | null>(null);
     const { activeAddress } = useWallet();
-    const movie: MovieType | undefined = moviesData.find((m: MovieType) => m.id === parseInt(id));
+
+    // Load movie from published movies storage
+    useEffect(() => {
+        const publishedMovies = getPublishedMovies();
+        console.log('Published movies:', publishedMovies);
+        console.log('Looking for movie with ID:', parseInt(id));
+        const foundMovie = publishedMovies.find((m: PublishedMovie) => m.id === parseInt(id));
+        console.log('Found movie:', foundMovie);
+        setMovie(foundMovie);
+    }, [id]);
+
+    // Fetch current price from blockchain
+    useEffect(() => {
+        const fetchCurrentPrice = async () => {
+            if (!movie) return;
+            
+            try {
+                const assetInfo = await getAssetInfo(movie.id);
+                const priceInAlgo = Number(assetInfo.price) / 1_000_000; // Convert microALGO to ALGO
+                setCurrentPrice(priceInAlgo);
+                setPriceError(null);
+            } catch (error) {
+                console.error('Error fetching current price:', error);
+                setPriceError('Failed to load current price');
+                // Fallback to stored price
+                setCurrentPrice(movie.price);
+            }
+        };
+
+        if (movie) {
+            fetchCurrentPrice(); 
+        }
+    }, [movie]);
 
     const handleBuySell = async () => {
         if (!activeAddress) {
@@ -44,7 +79,7 @@ export default function Movie({ params }: MoviePageProps) {
                     return;
                 }
 
-                const paymentInAlgo = Number(amount) * parseFloat(movie!.price.split(' ')[0]);
+                const paymentInAlgo = Number(amount) * currentPrice;
                 const paymentInMicroAlgo = Math.floor(paymentInAlgo * 1000000);
                 
                 console.log('Buying asset with params:', {
@@ -93,7 +128,7 @@ export default function Movie({ params }: MoviePageProps) {
         { time: '12:00', price: 0.55, color: '#ef4444' },
         { time: '16:00', price: 1.58, color: '#10b981' },
         { time: '20:00', price: 1.62, color: '#10b981' },
-        { time: '24:00', price: parseFloat(movie?.price.split(' ')[0] || '0.5'), color: parseFloat(movie?.price.split(' ')[0] || '0.5') >= 1 ? '#10b981' : '#ef4444' }
+        { time: '24:00', price: currentPrice || 0.5, color: (currentPrice || 0.5) >= 1 ? '#10b981' : '#ef4444' }
     ];
     
     if (!movie) {
@@ -113,8 +148,8 @@ export default function Movie({ params }: MoviePageProps) {
                 <div className={styles.movieMainContent}>
                     <div className={styles.imageContainer}>
                         <Image 
-                            src={movie.image} 
-                            alt={movie.title} 
+                            src={movie.imageUrl} 
+                            alt={movie.movieName} 
                             width={300} 
                             height={400} 
                             className={styles.movieImage}
@@ -130,13 +165,15 @@ export default function Movie({ params }: MoviePageProps) {
                         </button>
                     </div>
                     <div className={styles.movieInfo}>
-                        <h1 className={styles.movieTitle}>{movie.title}</h1>
-                        <p className={styles.movieDetail}>Director: {movie.director}</p>
-                        <p className={styles.movieDetail}>Year: {movie.year}</p>
+                        <h1 className={styles.movieTitle}>{movie.movieName}</h1>
+                        <p className={styles.movieDetail}>Director: {movie.director || 'N/A'}</p>
+                        <p className={styles.movieDetail}>Year: {movie.year || 'N/A'}</p>
                         <p className={styles.movieDetail}>Genre: {movie.genre}</p>
-                        <p className={styles.movieDetail}>Rating: {movie.rating}/10</p>
-                        <p className={styles.moviePrice}>Price: {movie.price}</p>
-                        <p className={styles.movieDescription}>{movie.desc}</p>
+                        <p className={styles.movieDetail}>Studio: {movie.studioName}</p>
+                        <p className={styles.moviePrice}>
+                            Price: {priceError ? `${movie.price} ALGO (fallback)` : `${currentPrice.toFixed(4)} ALGO`}
+                        </p>
+                        <p className={styles.movieDescription}>{movie.description}</p>
                     </div>
                     
                     <div className={styles.buySellSection}>
@@ -169,7 +206,9 @@ export default function Movie({ params }: MoviePageProps) {
                                 
                                 <div className={styles.priceInfo}>
                                     <div className={styles.priceLabel}>Price per share</div>
-                                    <div className={styles.priceValue}>{movie.price}</div>
+                                    <div className={styles.priceValue}>
+                                        {priceError ? `${movie.price} ALGO (fallback)` : `${currentPrice.toFixed(4)} ALGO`}
+                                    </div>
                                 </div>
                                 
                                 <div className={styles.priceInfo}>
@@ -177,7 +216,7 @@ export default function Movie({ params }: MoviePageProps) {
                                         Total {activeTab === 'buy' ? 'Cost' : 'Value'}
                                     </div>
                                     <div className={styles.priceValue}>
-                                        {amount ? (parseFloat(amount) * parseFloat(movie.price.split(' ')[0])).toFixed(2) : '0.00'} ALGO
+                                        {amount ? (parseFloat(amount) * currentPrice).toFixed(4) : '0.0000'} ALGO
                                     </div>
                                 </div>
                                 
@@ -217,7 +256,7 @@ export default function Movie({ params }: MoviePageProps) {
                             ×
                         </button>
                         <h2 className={styles.modalTitle}>
-                            {movie.title} - Trailer
+                            {movie.movieName} - Trailer
                         </h2>
                         <div className={styles.trailerVideo}>
                             {(() => {
@@ -227,7 +266,7 @@ export default function Movie({ params }: MoviePageProps) {
                                     return match ? match[1] : null;
                                 };
                                 
-                                const videoId = getVideoId(movie.trailer);
+                                const videoId = getVideoId(movie.trailerUrl);
                                 
                                 if (videoId) {
                                     return (
@@ -235,7 +274,7 @@ export default function Movie({ params }: MoviePageProps) {
                                             width="100%"
                                             height="315"
                                             src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
-                                            title={`${movie.title} Trailer`}
+                                            title={`${movie.movieName} Trailer`}
                                             frameBorder="0"
                                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                             allowFullScreen
@@ -250,7 +289,7 @@ export default function Movie({ params }: MoviePageProps) {
                                                 </svg>
                                                 <p className={styles.placeholderText}>Trailer not available</p>
                                                 <p className={styles.placeholderSubtext}>
-                                                    Unable to load trailer for {movie.title}
+                                                    Unable to load trailer for {movie.movieName}
                                                 </p>
                                             </div>
                                         </div>

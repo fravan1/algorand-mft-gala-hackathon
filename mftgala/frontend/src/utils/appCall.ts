@@ -48,32 +48,44 @@ async function getAppClient() {
  */
 export async function insertAsset(
   assetId: number,
-  asaId: number,
   totalSupply: number,
   basePrice: number,
   publisher: string,
   algoSeed: number,
-): Promise<boolean> {
+  assetName: string,
+  unitName: string
+): Promise<{ success: boolean; createdAssetId: bigint }> {
   try {
-    const { appClient, deployer } = await getAppClient();
+    const { appClient, deployer, algorand } = await getAppClient();
     
     // Ensure algoSeed is an integer (should be in microALGO)
     const algoSeedBigInt = BigInt(Math.floor(algoSeed));
     
+
+    const result = await algorand.send.assetCreate({
+      sender: deployer.addr.toString(),
+      total: BigInt(totalSupply),
+      decimals: 6,
+      assetName: assetName,
+      unitName: unitName
+    });
+
+    const createdAssetId = result.assetId;
+
     console.log('Inserting asset with params:', {
       assetId: BigInt(assetId),
-      asaId: BigInt(asaId),
+      asaId: BigInt(createdAssetId),
       totalSupply: BigInt(totalSupply),
       basePrice: BigInt(basePrice),
       publisher: publisher,
       algoSeed: algoSeedBigInt
     });
-    
+
     const response = await appClient.send.insertAsset({
       sender: deployer,
       args: {
         assetId: BigInt(assetId),
-        asaId: BigInt(asaId),
+        asaId: BigInt(createdAssetId),
         totalSupply: BigInt(totalSupply),
         basePrice: BigInt(basePrice),
         publisher: publisher,
@@ -81,7 +93,7 @@ export async function insertAsset(
       },
     });
     
-    return response.return as boolean;
+    return { success: response.return as boolean, createdAssetId };
   } catch (error) {
     console.error('Error inserting asset:', error);
     throw error;
@@ -330,7 +342,7 @@ export async function insertAssetComplete(
     
     // Step 4: Call insert_asset on the smart contract
     console.log('📤 Calling insert_asset on smart contract...');
-    const insertResult = await insertAsset(assetId, asaId, totalSupply, basePrice, publisher, algoSeed);
+    const insertResult = await insertAsset(assetId, totalSupply, basePrice, publisher, algoSeed, assetName, assetUnitName);
     
     if (!insertResult) {
       throw new Error('Failed to insert asset into contract');

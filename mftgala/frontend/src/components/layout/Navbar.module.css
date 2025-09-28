@@ -75,11 +75,15 @@
 
 @media (max-width: 768px) {
     .navLinks {
-        display: none; /* later replace with a mobile menu */
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: auto;
     }
 
     .navContainer {
         justify-content: space-between;
         padding: 0 1rem;
+        flex-wrap: wrap;
     }
 }
