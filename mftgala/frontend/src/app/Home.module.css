@@ -1,0 +1,113 @@
+.mainContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8rem 2rem;
+    height: auto;
+    gap: 4rem;
+    position: relative;
+}
+
+.heroSection {
+    text-align: center;
+    max-width: 800px;
+    z-index: 2;
+}
+
+.heroTitle {
+    font-size: 3.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff 0%, #63afcf 50%, #7b7792 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 2rem;
+    line-height: 1.2;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.heroDescription {
+    font-size: 1.125rem;
+    line-height: 2;
+    color: #e0e0e0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    
+}
+
+.heroButtonsContainer {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+}
+
+.ctaButton {
+    margin-top: 3rem;
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #63afcf 0%, #7b7792 100%);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 16px rgba(99, 175, 207, 0.3);
+    transition: all 0.3s ease;
+}
+
+.ctaButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99, 175, 207, 0.4);
+    background: linear-gradient(135deg, #7b7792 0%, #63afcf 100%);
+}
+
+.hiwButton {
+    margin-top: 3rem;
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #ffffff;
+    border: 1px solid #63afcf;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 16px rgba(99, 175, 207, 0.3);
+}
+
+.hiwButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99, 175, 207, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+    .mainContainer {
+        padding: 2rem 1rem;
+        gap: 3rem;
+    }
+    
+    .heroTitle {
+        font-size: 2.5rem;
+    }
+    
+    .heroDescription {
+        font-size: 1.1rem;
+    }
+    
+    .sectionTitle {
+        font-size: 2rem;
+    }
+    
+    .step {
+        padding: 1.5rem;
+    }
+    
+    .stepText {
+        font-size: 1rem;
+    }
+}

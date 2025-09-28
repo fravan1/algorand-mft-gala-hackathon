@@ -1,0 +1,9 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 0.3.5
+_src_path: gh:algorandfoundation/algokit-typescript-template
+author_email: dursunm21@itu.edu.tr
+author_name: Mehmet Bahadir Dursun
+contract_name: test
+preset_name: starter
+project_name: test
+

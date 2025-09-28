@@ -1,0 +1,10 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: 1.6.3
+_src_path: gh:algorandfoundation/algokit-python-template
+author_email: dursunm21@itu.edu.tr
+author_name: Mehmet Bahadir Dursun
+contract_name: mft_gala
+deployment_language: python
+preset_name: starter
+project_name: contracts
+

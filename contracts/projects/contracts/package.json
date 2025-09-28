@@ -1,0 +1,19 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "This project has been generated using AlgoKit. See below for default getting started instructions.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@algorandfoundation/algokit-utils": "^9.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2"
+  }
+}

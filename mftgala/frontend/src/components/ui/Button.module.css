@@ -1,0 +1,32 @@
+.button {
+    border: none;
+    border-radius: 8px;
+    padding: 4px 38px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.buy {
+    background: linear-gradient(to left, #375d9b, #40cb9d);
+}
+
+.sell {
+    background: linear-gradient(to left, #375d9b, #cb5140);
+}
+
+.button:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 175, 207, 0.3);
+}
